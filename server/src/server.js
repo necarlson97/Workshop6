@@ -4,9 +4,9 @@ var express = require('express');
 var app = express();
 
 // Defines what happens when it receives the `GET /` request
-app.get('/', function (req, res) {
-  res.send('Hello World!');
-});
+// app.get('/', function (req, res) {
+//   res.send('Hello World!');
+// });
 
 // Starts the server on port 3000!
 app.listen(3000, function () {
