@@ -78,7 +78,7 @@ var initialData = {
         "author": 4,
         "postDate": 1458231460117,
         "location": "Philadelphia, PA",
-        "contents": "You can now edit and delete status updates!\nGo ahead and click the caret in the corner of the post."
+        "contents": "You can now edit and delete these status updates!\nGo ahead and click the caret in the corner of the post."
       },
       "comments": []
     }
