@@ -139,7 +139,7 @@ function JSONClone(obj) {
  */
 function readDocument(collection, id) {
   // Clone the data. We do this to model a database, where you receive a
-  // *copy* of an object and not the object itself.
+  // *copy* of an object and not the object itself
   var collectionObj = data[collection];
   if (!collectionObj) {
     throw new Error(`Object collection ${collection} does not exist in the database!`);

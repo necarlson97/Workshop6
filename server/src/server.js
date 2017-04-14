@@ -10,6 +10,8 @@ app.listen(3000, function () {
 
 var bodyParser = require('body-parser');
 app.use(bodyParser.text());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // You run the server from `server`, so `../client/build` is `server/../client/build`.
 // '..' means "go up one directory", so this translates into `client/build`!
@@ -97,6 +99,7 @@ app.get('/user/:userid/feed', function(req, res) {
 });
 
 var StatusUpdateSchema = require('./schemas/statusupdate.json');
+var CommentSchema = require('./schemas/comment.json');
 var validate = require('express-jsonschema').validate;
 var writeDocument = database.writeDocument;
 var addDocument = database.addDocument;// Support receiving text in HTTP request bodies
@@ -256,6 +259,51 @@ app.put('/feeditem/:feeditemid/likelist/:userid', function(req, res) {
   }
 });
 
+// Like a comment
+app.put('/feeditem/:feeditemid/comments/:commentid/likelist/:userid', function(req, res) {
+  // Convert params from string to number.
+  var feedItemId = parseInt(req.params.feeditemid, 10);
+  var userId = parseInt(req.params.userid, 10)
+  var commentId = parseInt(req.params.commentid, 10)
+
+  var feedItem = readDocument('feedItems', feedItemId);
+
+  console.log("Comment before like: ",feedItem.comments[commentId]);
+  // Add to likeCounter if not already present.
+  if (feedItem.comments[commentId].likeCounter.indexOf(userId) === -1) {
+    feedItem.comments[commentId].likeCounter.push(userId);
+    writeDocument('feedItems', feedItem);
+  }
+  console.log("Comment after like: ",feedItem.comments[commentId]);
+  // Return a resolved version of the likeCounter
+  res.send(feedItem.comments[commentId].likeCounter.map((userId) =>
+      readDocument('users', userId)));
+
+});
+
+// Unlike a comment
+app.delete('/feeditem/:feeditemid/comments/:commentid/likelist/:userid', function(req, res) {
+  // Convert params from string to number.
+  var feedItemId = parseInt(req.params.feeditemid, 10);
+  var userId = parseInt(req.params.userid, 10)
+  var commentId = parseInt(req.params.commentid, 10)
+
+  var feedItem = readDocument('feedItems', feedItemId);
+
+  console.log("Comment before unlike: ",feedItem.comments[commentId]);
+  var likeIndex = feedItem.comments[commentId].likeCounter.indexOf(userId);
+  // Remove from likeCounter if present
+  if (likeIndex !== -1) {
+    feedItem.comments[commentId].likeCounter.splice(likeIndex, 1);
+    writeDocument('feedItems', feedItem);
+  }
+  console.log("Comment after unlike: ",feedItem.comments[commentId]);
+  // Return a resolved version of the likeCounter
+  res.send(feedItem.comments[commentId].likeCounter.map((userId) =>
+      readDocument('users', userId)));
+
+});
+
 // Unlike a feed item.
 app.delete('/feeditem/:feeditemid/likelist/:userid', function(req, res) {
   var fromUser = getUserIdFromToken(req.get('Authorization'));
@@ -309,6 +357,30 @@ app.post('/search', function(req, res) {
     res.status(400).end();
   }
 });
+
+// Post a comment (by updating a feed item)
+app.put('/feeditem/:feeditemid/comments',  validate({ body: CommentSchema }), function(req, res) {
+  // var fromUser = getUserIdFromToken(req.get('Authorization'));
+  var feedItemId = parseInt(req.params.feeditemid, 10);
+  var user = req.body.author;
+  var contents = req.body.contents;
+
+  var feedItem = readDocument('feedItems', feedItemId);
+
+  var time = new Date().getTime();
+  // The new comment
+  var newComment = {
+    "author": user,
+    "postDate": time,
+    "contents": contents,
+    "likeCounter": []
+  };
+
+  feedItem.comments.push(newComment);
+  writeDocument('feedItems', feedItem);
+  res.send(getFeedItemSync(feedItemId));
+});
+
 
 /**
  * Translate JSON Schema Validation failures into error 400s.
